@@ -17,243 +17,143 @@ import re
 os.makedirs('data/raw', exist_ok=True)
 os.makedirs('data/processed', exist_ok=True)
 
-# OMDB API
-OMDB_API_KEY = "YOUR_OMDB_API_KEY"  # Replace with your API key from http://www.omdbapi.com/
+# API Keys (replace with your keys)
+OMDB_API_KEY = "YOUR_OMDB_API_KEY"
+TMDB_API_KEY = "YOUR_TMDB_API_KEY"
 
-# TMDB API 
-TMDB_API_KEY = "YOUR_TMDB_API_KEY"  # Replace with your API key from https://www.themoviedb.org/
-
-# IMDb Top 250 Movies (sample)
+# List of top movies (IMDb Top 250)
 TOP_MOVIES = [
-    "The Shawshank Redemption", "The Godfather", "The Dark Knight", 
-    "The Godfather Part II", "12 Angry Men", "Schindler's List",
-    "The Lord of the Rings: The Return of the King", "Pulp Fiction",
-    "The Lord of the Rings: The Fellowship of the Ring", "Forrest Gump",
-    "Inception", "Fight Club", "The Matrix", "Goodfellas",
-    "The Lord of the Rings: The Two Towers", "Star Wars: Episode V - The Empire Strikes Back",
-    "One Flew Over the Cuckoo's Nest", "The Silence of the Lambs", "Interstellar",
-    "Saving Private Ryan", "City of God", "Life Is Beautiful", "The Green Mile",
-    "Seven Samurai", "Spirited Away", "Parasite", "The Lion King", "Back to the Future",
-    "The Pianist", "Gladiator", "The Departed", "Whiplash", "The Prestige",
-    "Casablanca", "Alien", "Apocalypse Now", "Memento", "Raiders of the Lost Ark",
-    "Django Unchained", "WALL·E", "The Shining", "The Dark Knight Rises", 
-    "Avengers: Infinity War", "Joker", "Oldboy", "Princess Mononoke"
+    "The Shawshank Redemption", "The Godfather", "The Dark Knight", "The Godfather Part II",
+    "12 Angry Men", "Schindler's List", "The Lord of the Rings: The Return of the King",
+    "Pulp Fiction", "The Lord of the Rings: The Fellowship of the Ring", "The Good, the Bad and the Ugly",
+    "Forrest Gump", "Fight Club", "The Lord of the Rings: The Two Towers", "Inception",
+    "The Matrix", "Goodfellas", "One Flew Over the Cuckoo's Nest", "Se7en", "The Silence of the Lambs",
+    "Saving Private Ryan", "Interstellar", "The Green Mile", "Star Wars: Episode IV - A New Hope",
+    "Terminator 2: Judgment Day", "Back to the Future", "Spirited Away", "The Pianist",
+    "Psycho", "Parasite", "The Lion King", "Gladiator", "American History X", "The Usual Suspects",
+    "The Departed", "Whiplash", "The Intouchables", "Modern Times", "Once Upon a Time in the West",
+    "Casablanca", "City Lights", "Rear Window", "The Great Dictator", "Raiders of the Lost Ark",
+    "The Lives of Others", "Sunset Boulevard", "Paths of Glory", "The Shining", "The Great Escape"
 ]
 
-# Popular genres to balance the dataset
+# List of genres to ensure balanced dataset
 GENRES = [
-    "Action", "Adventure", "Animation", "Biography", "Comedy", "Crime", 
-    "Documentary", "Drama", "Family", "Fantasy", "History", "Horror", 
-    "Music", "Musical", "Mystery", "Romance", "Sci-Fi", "Sport", 
-    "Thriller", "War", "Western"
+    "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama",
+    "Family", "Fantasy", "History", "Horror", "Music", "Mystery", "Romance",
+    "Science Fiction", "TV Movie", "Thriller", "War", "Western"
 ]
 
 def fetch_omdb_data(title):
     """Fetch movie data from OMDB API"""
-    url = f"http://www.omdbapi.com/?t={title}&apikey={OMDB_API_KEY}"
+    url = f"http://www.omdbapi.com/?apikey={OMDB_API_KEY}&t={title}"
     response = requests.get(url)
-    
     if response.status_code == 200:
-        data = response.json()
-        if data.get('Response') == 'True':
-            return data
-    
+        return response.json()
     return None
 
 def fetch_tmdb_movie_id(title):
     """Fetch movie ID from TMDB API"""
     url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={title}"
     response = requests.get(url)
-    
     if response.status_code == 200:
         data = response.json()
-        if data.get('results') and len(data['results']) > 0:
+        if data['results']:
             return data['results'][0]['id']
-    
     return None
 
 def fetch_tmdb_reviews(movie_id):
-    """Fetch movie reviews from TMDB API"""
-    if not movie_id:
-        return []
-    
+    """Fetch reviews for a movie from TMDB API"""
     url = f"https://api.themoviedb.org/3/movie/{movie_id}/reviews?api_key={TMDB_API_KEY}"
     response = requests.get(url)
-    
     if response.status_code == 200:
         data = response.json()
-        reviews = []
-        for review in data.get('results', []):
-            content = review.get('content', '')
-            if content:
-                # Clean and truncate review
-                content = re.sub(r'\s+', ' ', content)
-                content = content[:500] + '...' if len(content) > 500 else content
-                reviews.append(content)
-        return reviews
-    
+        return [review['content'] for review in data['results']]
     return []
 
 def generate_prompts(movie_data):
     """Generate instruction prompts for fine-tuning"""
     prompts = []
     
-    # Basic info prompts
-    title = movie_data.get('Title', '')
-    year = movie_data.get('Year', '')
-    director = movie_data.get('Director', '')
-    actors = movie_data.get('Actors', '')
-    plot = movie_data.get('Plot', '')
-    genre = movie_data.get('Genre', '')
-    
-    # Reviews
-    reviews = movie_data.get('reviews', [])
-    review_text = " ".join(reviews)
-    
-    # Generate different types of prompts
-    
-    # Movie recommendation
+    # Basic movie information
     prompts.append({
-        'instruction': f"Recommend movies similar to {title}.",
-        'input': f"I enjoyed watching {title} directed by {director}. I particularly like {genre} movies. Can you suggest similar films?",
-        'response': f"Based on your enjoyment of {title}, I recommend checking out these similar {genre} films:\n\n1. [Similar Movie 1] - Like {title}, this film features [similar theme/style].\n2. [Similar Movie 2] - Directed by [director], who has a style comparable to {director}.\n3. [Similar Movie 3] - Stars [actor] from {title} in a similar role.\n\nAll of these capture the essence of {title} while offering fresh perspectives on similar themes."
+        'instruction': f"Describe the plot of {movie_data['Title']}",
+        'input': f"What is the plot of {movie_data['Title']}?",
+        'response': movie_data['Plot']
     })
-    
-    # Movie plot explanation
-    prompts.append({
-        'instruction': f"Explain the plot of {title}.",
-        'input': f"What happens in the movie {title}? Please avoid major spoilers.",
-        'response': f"{plot}"
-    })
-    
-    # Movie analysis
-    if reviews:
-        prompts.append({
-            'instruction': f"Analyze critical reception of {title}.",
-            'input': f"What did critics think about {title}? Was it well-received?",
-            'response': f"Critics had varied opinions on {title} ({year}):\n\n" + 
-                       f"Some praised {director}'s direction and the performances of {actors}. " +
-                       f"Based on reviews: {review_text[:300]}..." if len(review_text) > 300 else review_text
-        })
     
     # Cast information
     prompts.append({
-        'instruction': f"List the main cast of {title}.",
-        'input': f"Who starred in {title}? What roles did they play?",
-        'response': f"The main cast of {title} ({year}) includes:\n\n{actors}\n\nDirected by {director}, this {genre} film features these actors in their respective iconic roles."
+        'instruction': f"List the main cast of {movie_data['Title']}",
+        'input': f"Who are the main actors in {movie_data['Title']}?",
+        'response': f"The main cast of {movie_data['Title']} includes: {movie_data['Actors']}"
     })
     
-    # Genre discussion
+    # Director information
     prompts.append({
-        'instruction': f"Discuss the {genre} elements in {title}.",
-        'input': f"How does {title} represent the {genre} genre? What genre tropes does it use or subvert?",
-        'response': f"{title} is primarily classified as {genre}. It exemplifies this genre through its [specific elements], while also bringing fresh perspectives by [innovative approaches]. {director}'s direction particularly emphasizes [genre-specific techniques] that have become hallmarks of quality {genre} filmmaking."
+        'instruction': f"Who directed {movie_data['Title']}?",
+        'input': f"Who is the director of {movie_data['Title']}?",
+        'response': f"{movie_data['Title']} was directed by {movie_data['Director']}"
+    })
+    
+    # Genre-based recommendations
+    prompts.append({
+        'instruction': f"Recommend movies similar to {movie_data['Title']}",
+        'input': f"I enjoyed {movie_data['Title']} ({movie_data['Genre']}). Can you recommend similar movies?",
+        'response': f"Based on your enjoyment of {movie_data['Title']}, here are some similar {movie_data['Genre']} films you might like: [Recommendations would be generated by the model]"
+    })
+    
+    # Rating and reviews
+    prompts.append({
+        'instruction': f"What is the rating of {movie_data['Title']}?",
+        'input': f"What are the ratings and reviews for {movie_data['Title']}?",
+        'response': f"{movie_data['Title']} has an IMDb rating of {movie_data['imdbRating']}/10 and has received critical acclaim."
     })
     
     return prompts
 
 def main():
-    print("Starting movie data collection...")
-    
-    all_movie_data = []
+    """Main function to collect and process movie data"""
     all_prompts = []
     
-    # Process top movies
-    for title in tqdm(TOP_MOVIES, desc="Fetching movie data"):
+    print("Starting movie data collection...")
+    
+    for title in tqdm(TOP_MOVIES):
         try:
-            # Get basic movie info from OMDB
-            movie_data = fetch_omdb_data(title)
-            if not movie_data:
+            # Fetch data from OMDB
+            omdb_data = fetch_omdb_data(title)
+            if not omdb_data or omdb_data.get('Response') == 'False':
+                print(f"Could not fetch data for {title}")
                 continue
             
-            # Get movie ID from TMDB for reviews
-            movie_id = fetch_tmdb_movie_id(title)
+            # Fetch TMDB ID
+            tmdb_id = fetch_tmdb_movie_id(title)
+            if tmdb_id:
+                # Fetch reviews
+                reviews = fetch_tmdb_reviews(tmdb_id)
+                if reviews:
+                    omdb_data['Reviews'] = reviews
             
-            # Get reviews
-            reviews = fetch_tmdb_reviews(movie_id)
-            movie_data['reviews'] = reviews
-            
-            all_movie_data.append(movie_data)
-            
-            # Generate instruction prompts
-            prompts = generate_prompts(movie_data)
+            # Generate prompts
+            prompts = generate_prompts(omdb_data)
             all_prompts.extend(prompts)
             
-            # Add delay to avoid rate limiting
-            time.sleep(1)
+            # Save raw data
+            with open(f'data/raw/{title.replace(" ", "_").lower()}.json', 'w') as f:
+                json.dump(omdb_data, f, indent=2)
+            
+            # Random delay to avoid rate limiting
+            time.sleep(random.uniform(1, 3))
+            
         except Exception as e:
             print(f"Error processing {title}: {str(e)}")
+            continue
     
-    # Add more movies by genre to balance dataset
-    for genre in tqdm(GENRES, desc="Adding genre-specific movies"):
-        try:
-            # Search movies by genre using TMDB
-            url = f"https://api.themoviedb.org/3/discover/movie?api_key={TMDB_API_KEY}&with_genres={genre}&sort_by=popularity.desc"
-            response = requests.get(url)
-            
-            if response.status_code == 200:
-                data = response.json()
-                # Take top 3 movies from each genre
-                for movie in data.get('results', [])[:3]:
-                    title = movie.get('title')
-                    
-                    # Check if we already have this movie
-                    if any(m.get('Title') == title for m in all_movie_data):
-                        continue
-                    
-                    # Get full movie data from OMDB
-                    movie_data = fetch_omdb_data(title)
-                    if not movie_data:
-                        continue
-                    
-                    # Get reviews
-                    reviews = fetch_tmdb_reviews(movie.get('id'))
-                    movie_data['reviews'] = reviews
-                    
-                    all_movie_data.append(movie_data)
-                    
-                    # Generate instruction prompts
-                    prompts = generate_prompts(movie_data)
-                    all_prompts.extend(prompts)
-            
-            # Add delay to avoid rate limiting
-            time.sleep(1)
-        except Exception as e:
-            print(f"Error processing genre {genre}: {str(e)}")
+    # Save processed prompts
+    df = pd.DataFrame(all_prompts)
+    df.to_csv('data/processed/movie_conversations.csv', index=False)
     
-    # Save raw movie data
-    with open('data/raw/movie_data.json', 'w') as f:
-        json.dump(all_movie_data, f, indent=2)
-    
-    # Convert to dataframe and save
-    movies_df = pd.DataFrame([{
-        'title': m.get('Title', ''),
-        'year': m.get('Year', ''),
-        'director': m.get('Director', ''),
-        'actors': m.get('Actors', ''),
-        'plot': m.get('Plot', ''),
-        'genres': m.get('Genre', ''),
-        'ratings': str(m.get('Ratings', [])),
-        'reviews': '; '.join(m.get('reviews', []))
-    } for m in all_movie_data])
-    
-    movies_df.to_csv('data/processed/movie_data.csv', index=False)
-    
-    # Save instruction tuning data
-    prompts_df = pd.DataFrame(all_prompts)
-    prompts_df.to_csv('data/processed/movie_conversations.csv', index=False)
-    
-    # Create a sample of conversations for easy inspection
-    prompts_sample = random.sample(all_prompts, min(10, len(all_prompts)))
-    with open('data/processed/sample_conversations.txt', 'w') as f:
-        for i, prompt in enumerate(prompts_sample):
-            f.write(f"Example {i+1}\n")
-            f.write(f"Instruction: {prompt['instruction']}\n")
-            f.write(f"Input: {prompt['input']}\n")
-            f.write(f"Response: {prompt['response']}\n")
-            f.write("\n" + "-"*50 + "\n\n")
-    
-    print(f"Data collection complete. Collected {len(all_movie_data)} movies and generated {len(all_prompts)} conversation examples.")
+    print(f"\nData collection complete! Generated {len(all_prompts)} prompts.")
+    print("Files saved in data/raw/ and data/processed/ directories.")
 
 if __name__ == "__main__":
     main()

@@ -1,116 +1,120 @@
 # MovieLLM-Finetuning
 
-This project demonstrates how to fine-tune an open-source Large Language Model (LLM) on movie data using quantized Low-Rank Adaptation (qLoRA) and implement a Retrieval-Augmented Generation (RAG) system, all running on Google Colab.
+A project for fine-tuning an open-source LLM (Mistral-7B) on movie data using qLoRA and implementing a RAG system for an interactive movie quiz chatbot.
 
 ## Project Overview
 
-This repository contains code to:
+This project demonstrates how to:
+1. Fine-tune a large language model (Mistral-7B) on movie data using qLoRA
+2. Implement a Retrieval-Augmented Generation (RAG) system for movie knowledge
+3. Create an interactive movie quiz chatbot
 
-1. Collect and process movie data from online sources (OMDB and TMDB APIs)
-2. Fine-tune an open-source LLM (Mistral-7B) on movie-related conversations using qLoRA
-3. Build a vector database of movie information for RAG
-4. Create an interactive movie chatbot and quiz system
+The project uses:
+- Mistral-7B as the base model
+- qLoRA for efficient fine-tuning
+- FAISS for vector similarity search
+- OMDB and TMDB APIs for movie data collection
+- Gradio for the interactive interface
 
 ## Requirements
 
-- Google Colab with GPU (T4 is sufficient)
+- Python 3.8+
+- Google Colab (for fine-tuning)
 - API keys for:
-  - [OMDB API](http://www.omdbapi.com/)
-  - [TMDB API](https://www.themoviedb.org/documentation/api)
+  - OMDB (http://www.omdbapi.com/)
+  - TMDB (https://www.themoviedb.org/)
 
 ## Project Structure
 
 ```
 MovieLLM-Finetuning/
-│
-├── movie_llm_finetuning.ipynb      # Main fine-tuning notebook
-├── movie_rag_implementation.ipynb  # RAG implementation notebook
-├── movie_chatbot_demo.ipynb        # Interactive demo with Gradio
-│
+├── data/
+│   ├── raw/           # Raw movie data from APIs
+│   └── processed/     # Processed data for fine-tuning
 ├── data_collection/
-│   ├── scrape_movie_data.py        # Script to gather movie data
-│   └── process_movie_data.py       # Script to process data for RAG
-│
-└── data/                           # Generated during execution
-    ├── raw/                        # Raw scraped data
-    └── processed/                  # Processed data for training and RAG
-        └── rag/                    # Vector database files
+│   └── scrape_movie_data.py  # Script to collect movie data
+├── vector_db/         # Vector database for RAG
+└── colab_notebooks_guide.md  # Guide for setting up notebooks
 ```
 
 ## How to Use
 
-### 1. Data Collection
+1. **Data Collection**
+   ```bash
+   # Install requirements
+   pip install -r requirements.txt
+   
+   # Set up your API keys in scrape_movie_data.py
+   # Run the data collection script
+   python data_collection/scrape_movie_data.py
+   ```
 
-First, update your API keys in `data_collection/scrape_movie_data.py`, then run:
+2. **Fine-tuning**
+   - Follow the instructions in `colab_notebooks_guide.md` to set up the fine-tuning notebook
+   - The guide includes all necessary code for:
+     - Loading and quantizing the model
+     - Applying qLoRA
+     - Processing the dataset
+     - Training the model
+     - Saving the fine-tuned model
 
-```bash
-# Make sure the directories exist
-mkdir -p data/raw data/processed
+3. **RAG Implementation**
+   - Follow the RAG implementation section in the guide
+   - This includes:
+     - Building the vector database
+     - Creating retrieval functions
+     - Implementing the chatbot
 
-# Collect movie data
-python data_collection/scrape_movie_data.py
-
-# Process the data for RAG and fine-tuning
-python data_collection/process_movie_data.py
-```
-
-### 2. Fine-Tuning
-
-Upload `movie_llm_finetuning.ipynb` to Google Colab and run through the notebook. This will:
-
-- Set up the environment
-- Load and quantize the Mistral-7B model
-- Apply qLoRA for parameter-efficient fine-tuning
-- Train the model on movie data
-- Save the fine-tuned model
-
-### 3. RAG Implementation
-
-Upload `movie_rag_implementation.ipynb` to Google Colab and run through the notebook. This will:
-
-- Build a vector database from the movie data
-- Implement retrieval functions
-- Create an integrated movie chatbot with RAG
-- Implement a movie quiz system
-
-### 4. Interactive Demo
-
-Upload `movie_chatbot_demo.ipynb` to Google Colab and run it to interact with your fine-tuned model through a Gradio interface.
+4. **Interactive Demo**
+   - Use the Gradio interface section to create an interactive movie quiz chatbot
+   - The demo includes:
+     - Movie recommendations
+     - Plot explanations
+     - Cast information
+     - Director details
+     - Genre-based queries
 
 ## Model Details
 
-- Base model: [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1)
-- Fine-tuning method: qLoRA (quantized Low-Rank Adaptation)
-- Quantization: 4-bit quantization with double quantization
-- Training data: Movie conversations, descriptions, reviews, and quiz questions
-
-## Important Note
-
-Please check the `how_to_use.md` file for detailed instructions on getting the notebooks properly, as there may be issues with the notebook files in this repository.
+- **Base Model**: Mistral-7B
+- **Fine-tuning Method**: qLoRA (Quantized Low-Rank Adaptation)
+- **Quantization**: 4-bit with double quantization
+- **Training Data**: Movie information, reviews, and generated conversations
 
 ## RAG System
 
-The RAG system enhances the LLM by retrieving relevant movie information before generating responses. This improves accuracy for factual questions and provides more detailed information about movies, directors, actors, and plots.
+The RAG system enhances the LLM's capabilities by:
+1. Retrieving relevant movie information from the vector database
+2. Using this context to generate more accurate and detailed responses
+3. Providing factual information about movies, directors, and actors
 
 ## Example Applications
 
-- **Movie Chatbot**: Ask questions about movies, directors, plots, recommendations
-- **Movie Quiz**: Interactive multiple-choice quiz to test movie knowledge
-- **Recommendation System**: Get personalized movie recommendations based on preferences
+1. **Movie Chatbot**
+   - Answer questions about movies
+   - Provide recommendations
+   - Explain plots and themes
+   - Share cast and crew information
+
+2. **Movie Quiz System**
+   - Generate questions about movies
+   - Check answers
+   - Provide explanations
+   - Track scores
 
 ## Extending the Project
 
-- Add more data sources (Wikipedia, IMDb, Rotten Tomatoes)
-- Enhance the RAG system with more context and better retrieval
-- Create a web interface for the chatbot
-- Expand to TV shows or other entertainment categories
+You can enhance this project by:
+1. Adding more movie data sources
+2. Implementing additional quiz types
+3. Creating a web interface
+4. Adding user authentication
+5. Implementing conversation history
 
-## License
+## License and Acknowledgments
 
-This project is open source, intended for educational purposes.
-
-## Acknowledgments
-
-- [Mistral AI](https://mistral.ai/) for the Mistral-7B model
-- [HuggingFace](https://huggingface.co/) for the Transformers library
-- [OMDB API](http://www.omdbapi.com/) and [TMDB API](https://www.themoviedb.org/) for movie data
+This project is open source and available under the MIT License. It builds upon:
+- Mistral AI's Mistral-7B model
+- Hugging Face's transformers library
+- Google Colab's free GPU resources
+- OMDB and TMDB APIs for movie data
